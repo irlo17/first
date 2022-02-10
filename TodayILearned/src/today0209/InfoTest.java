@@ -4,8 +4,15 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 public class InfoTest {
 	
@@ -13,7 +20,7 @@ public class InfoTest {
 	JFrame f;
 	JTextField tfName, tfId, tfTel, tfAge,tfGender, tfHome;
 	JTextArea ta;
-	JButton bAdd, bShow, bSearch, bDelete, bCancel, bExit;
+	JButton bAdd, bShow, bSearch, bDelete, bModify, bExit;
 	
 	Database db;
 	
@@ -34,7 +41,7 @@ public class InfoTest {
 		bShow = new JButton("Show");
 		bSearch = new JButton("Search");
 		bDelete = new JButton("Delete");
-		bCancel = new JButton("Cancel");
+		bModify = new JButton("Modify");
 		bExit = new JButton("Exit");
 		
 		try {
@@ -82,7 +89,7 @@ public class InfoTest {
 		pb.add(bShow);
 		pb.add(bSearch);
 		pb.add(bDelete);
-		pb.add(bCancel);
+		pb.add(bModify);
 		pb.add(bExit);
 		
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -122,27 +129,93 @@ public class InfoTest {
 			}
 		});
 		
+		
+		//Modify 버튼이 눌렸을 때 수정
+		bModify.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+				//사용자의 입력값들을  InfoVO 멤버(통으로 만든다)로 지정
+				InfoVO vo = new InfoVO();
+				vo.setName(tfName.getText());
+				vo.setId(tfId.getText());
+				vo.setTel(tfTel.getText());
+				vo.setGender(tfGender.getText());
+				vo.setAge(Integer.valueOf(tfAge.getText()));
+				vo.setHome(tfHome.getText());
+				
+				try {
+					db.modify(vo);
+					
+					//입력하면 지워짐
+					tfName.setText(null);
+					tfId.setText(null);
+					tfTel.setText(null);
+					tfGender.setText(null);
+					tfAge.setText(null);
+					tfHome.setText(null);
+				} catch (Exception e1) {
+					JOptionPane.showMessageDialog(null, "수정실패"+e1.getMessage());
+				}//t~c
+			}
+		});
+		
+		//id 텍스트 필드에서 엔터쳤을 때
+		tfId.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+				searchById();
+			}
+		});
+		
 		//tfTel 입력하고 엔터치면 SQL에서 내용 가져오기
 		tfTel.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				String tel = tfTel.getText();
-				
-				try {
-				//사용자가 입력한 전화번호를 얻고 실제 오라클에서 전화번호가 있으면 그 결과를 받음
-					InfoVO result = db.searchByTel(tel);
-
-				//받은 결과를 화면에 찍는다
-					tfName.setText(result.getName());
-					tfId.setText(result.getId());
-					tfTel.setText(result.getTel());
-					tfGender.setText(result.getGender());
-					tfAge.setText(Integer.toString(result.getAge()));
-					tfHome.setText(result.getHome());
-					
-				} catch (Exception e1) {
-					System.out.println("검색 실패: "+e1.getMessage());
-				}
+				searchByTel();
 			}
+		});
+		//search버튼
+		bSearch.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) {
+				searchByTel();
+			}
+		});
+		//삭제버튼이 눌렸을  때
+		bDelete.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+				String tel = tfTel.getText();
+				try {
+					
+					int result = db.delete(tel);
+					if(result == 1) {
+						JOptionPane.showMessageDialog(null, "삭제성공");
+					}//if
+					
+					// 화면 비우기
+					tfTel.setText(null);
+					
+				}catch(Exception ex){
+					System.out.println("삭제 실패: "+ex.getMessage());
+				}//t~c
+				
+			}
+		});
+
+		//show 버튼
+		bShow.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) {
+				selectAll();
+			}		
+		});
+		
+		//종료 버튼이 눌려졌을 때 프로그램 종료함
+		bExit.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) {
+				System.exit(0); //숫자는 의미없다 
+			}		
 		});
 		
 		//종료 버튼이 눌려졌을 때 프로그램 종료
@@ -152,10 +225,67 @@ public class InfoTest {
 				System.exit(0);
 			}
 		});
+		
 	}
+	void searchByTel() {
+		String tel = tfTel.getText();
+		try {
+			
+			//사용자가 입력한 전화번호를 얻고 실제 오라클에서 전화번호가 있으면 그 결과를 받음
+			InfoVO result = db.searchByTel(tel);
+			
+			//받은 결과를 화면에 찍는다
+			tfName.setText(result.getName());
+			tfId.setText(result.getId());
+			tfTel.setText(result.getTel());
+			tfGender.setText(result.getGender());
+			tfAge.setText(Integer.toString(result.getAge()));
+			tfHome.setText(result.getHome());
+			
+			
+		}catch(Exception ex){
+			System.out.println("검색 실패: "+ex.getMessage());
+		}//t~c
+	}//searchByTel()
+	
+	void searchById() {
+		String id = tfId.getText();
+		try {
+			
+			//사용자가 입력한 id를 얻고 실제 오라클에서 id가 있으면 그 결과를 받음
+			InfoVO result = db.searchById(id);
+			
+			//받은 결과를 화면에 찍는다
+			tfName.setText(result.getName());
+			tfId.setText(result.getId());
+			tfTel.setText(result.getTel());
+			tfGender.setText(result.getGender());
+			tfAge.setText(Integer.toString(result.getAge()));
+			tfHome.setText(result.getHome());
+			
+			
+		}catch(Exception ex){
+			System.out.println("검색 실패: "+ex.getMessage());
+		}//t~c
+	}//searchById()
 
-
-
+	void selectAll() { //전체검색
+		try {
+		ta.setText("---------검색결과---------\n\n");
+		ArrayList<InfoVO> result =  db.selectAll();
+		 
+		//향상된 for문
+		for(InfoVO vo : result) {
+			//ta.append(vo.getName() + "\n" +vo.getId()+"\n"+vo.getTel()+"\n"+vo.getGender()
+				//		+"\n"+vo.getAge()+"\n"+vo.getHome()+"\n\n");
+			ta.append(vo.toString());
+		}
+		
+		}catch(Exception ex) {
+			System.out.println("전체검색실패 : "+ex.getMessage());
+		}
+	}//selectAll()
+	
 	public static void main(String[] args) {
 		InfoTest info = new InfoTest();
 		info.eventProc();
